@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# RAM PAPA - FREE FIRE MAX BOT (Full System)
+# RAM PAPA - FREE FIRE MAX BOT (Webhook Compatible)
 
 import os
 import sys
@@ -22,7 +22,7 @@ from telegram.ext import Application, CommandHandler, CallbackQueryHandler, Cont
 urllib3.disable_warnings()
 
 # ========== BOT TOKEN ==========
-BOT_TOKEN = "8643582994:AAHh6ECZ7LqUsHhIGKo8Q0HyLdSuijhxDVs"
+BOT_TOKEN = "8643582994:AAHh6ECZ7LqUsHhIGKo8Q0HyLdSuiJhxDV5"
 
 # ========== OWNER USER ID ==========
 OWNER_ID = 7108672650
@@ -148,7 +148,6 @@ async def forward_to_owner(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user_id == OWNER_ID:
         return
     
-    # ✅ Agar message command hai (ReplyKeyboard button) toh forward mat karo
     command_list = [
         "📧 ADD RECOVERY EMAIL", "🔍 CHECK RECOVERY EMAIL",
         "❌ CANCEL PENDING", "🔓 UNBIND EMAIL",
@@ -159,9 +158,8 @@ async def forward_to_owner(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     if update.message and update.message.text:
         if update.message.text in command_list:
-            return  # ✅ Command hai — forward mat karo
+            return
     
-    # ✅ Sirf verified users (jinhone key daali hai) ya admins ke messages forward karo
     if is_user_active(user_id) or user_id in admin_list:
         try:
             await context.bot.forward_message(
@@ -545,7 +543,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     await forward_to_owner(update, context)
     
-    # ✅ Sabhi users ko menu dikhega
     if user_id == OWNER_ID:
         welcome = """RAM PAPA FREE FIRE MAX BOT
 
@@ -555,7 +552,6 @@ Choose an option below:"""
         await update.message.reply_text(welcome, reply_markup=get_reply_keyboard(user_id))
         return ConversationHandler.END
     
-    # ✅ Menu sabhi ko dikhega
     welcome = """RAM PAPA FREE FIRE MAX BOT
 
 Developer: @RAM_BHAI_PAPA
@@ -573,7 +569,7 @@ async def handle_key_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await forward_to_owner(update, context)
     
     if key not in all_keys:
-        await update.message.reply_text("❌ Invalid key! Please enter a valid key.")
+        await update.message.reply_text("❌ TERI KEY WRONG HAI BE CHUTIYA.")
         return STATE_KEY_INPUT
     
     key_data = all_keys[key]
@@ -597,18 +593,15 @@ async def handle_key_input(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(f"✅ Key activated! You can now use the bot.\n\n📅 Expiry: {expiry}", reply_markup=get_reply_keyboard(user_id))
     return ConversationHandler.END
 
-# ✅ FIXED: Menu sabko dikhe + bina key ke click karne par key maange
 async def handle_reply_keyboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.message.from_user.id
     text = update.message.text
     await forward_to_owner(update, context)
     
-    # ✅ Reset previous conversation
     user_data.pop(user_id, None)
     context.user_data.clear()
     context.chat_data.clear()
     
-    # ✅ Agar user owner hai toh direct access
     if user_id == OWNER_ID:
         action_map = {
             "📧 ADD RECOVERY EMAIL": "add_email",
@@ -657,13 +650,11 @@ async def handle_reply_keyboard(update: Update, context: ContextTypes.DEFAULT_TY
             await update.message.reply_text("Please use the buttons below:", reply_markup=get_reply_keyboard(user_id))
             return ConversationHandler.END
     
-    # ✅ Agar user verified nahi hai — key maango
     if not is_user_active(user_id):
         user_data[user_id] = {'step': 'key_input'}
-        await update.message.reply_text("🔑 Please enter your access key first to use this bot.")
+        await update.message.reply_text("🔑 PLEASE ENTER YOUR KEY FIRST TO USE THIS BOT.")
         return STATE_KEY_INPUT
     
-    # ✅ Verified user — normal flow
     action_map = {
         "📧 ADD RECOVERY EMAIL": "add_email",
         "🔍 CHECK RECOVERY EMAIL": "check_email",
@@ -880,7 +871,6 @@ async def removeadmin_command(update: Update, context: ContextTypes.DEFAULT_TYPE
     except:
         await update.message.reply_text("❌ Invalid USER_ID!")
 
-# ✅ FIXED: Broadcast sabhi users ko jaye (verified + non-verified)
 async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     await forward_to_owner(update, context)
@@ -896,8 +886,6 @@ async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = " ".join(context.args)
     sent = 0
     
-    # ✅ SABHI USERS KO BROADCAST (verified + non-verified)
-    # user_data mein sabhi users hain jinhone bot start kiya hai
     all_users = list(user_data.keys())
     
     for uid in all_users:
@@ -907,7 +895,6 @@ async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except:
             pass
     
-    # ✅ Owner ko bhi bhejo
     try:
         await context.bot.send_message(chat_id=OWNER_ID, text=f"📢 BROADCAST:\n\n{msg}")
     except:
@@ -1580,14 +1567,20 @@ def main():
     application.add_handler(conv_handler)
     application.add_handler(CallbackQueryHandler(button_handler, pattern='^back_menu$'))
 
-    print("✅ Bot started!")
-    print(f"👑 Owner ID: {OWNER_ID}")
-    print(f"🔑 Total Keys: {len(all_keys)}")
-    print(f"👥 Admins: {len(admin_list)}")
-    print("📨 Only verified users' non-command messages forwarded to owner")
-    print("🌍 Public access with Key verification")
-    print("📢 Broadcast sends to all users (verified + non-verified)")
-    application.run_polling()
+    # ========== ✅ WEBHOOK MODE (Render Web Service ke liye) ==========
+    PORT = int(os.environ.get("PORT", 10000))
+    WEBHOOK_URL = os.environ.get("WEBHOOK_URL")
+    
+    if WEBHOOK_URL:
+        print(f"🚀 Starting bot with webhook on {WEBHOOK_URL}")
+        application.run_webhook(
+            listen="0.0.0.0",
+            port=PORT,
+            webhook_url=WEBHOOK_URL,
+        )
+    else:
+        print("⚡ WEBHOOK_URL not set, using polling...")
+        application.run_polling()
 
 if __name__ == "__main__":
     main()
